@@ -1,7 +1,9 @@
 import bpy
 import os
+import csv
 
 from bpy.props import (
+    BoolProperty,
     StringProperty,
     )
 
@@ -111,20 +113,19 @@ class SCENE_OT_ExportFlightPath(bpy.types.Operator):
     bl_idname = "drones.export"
     bl_label = "Export Flight Path"
 
-    filename = StringProperty(
-            name="File Name",
-            default="fp.csv",
-            description="Name of flight path file",
-            )
-
-    dir_path = StringProperty(
-            name="Folder",
-            default="",
-            description="Folder to export the flight path file."
-            "If left blank it will not write it externally",
+    filepath = StringProperty(
+            subtype='FILE_PATH',
+            default="flight_path.csv",
             )
 
     def execute(self, context):
+
+        if not self.filepath:
+            raise Exception("Filepath not set")
+
+        if not self.filepath.endswith(".csv"):
+            self.filepath += ".csv"
+
         scene = context.scene
         fps = scene.render.fps
         flight_path = FlightPath(fps)
@@ -156,44 +157,38 @@ class SCENE_OT_ExportFlightPath(bpy.types.Operator):
 
         else:
             # write the file externally
-            if self.dir_path:
-                try:
-                    filepath = os.path.join(self.dir_path, self.filename)
-                    final_filepath = export_scene_file(filepath, flight_path.write)
+            try:
+                final_filepath = export_scene_file(self.filepath, flight_path.write)
 
-                except Exception as E:
-                    # fallback, dump the CSV content to Text Editor
-                    text = flight_path_file_text(self.filename)
-                    text.write(flight_path.dump())
-
-                    self.report({'WARNING'},
-                            "Flight path could not be saved externally. " \
-                            "Look for it in the Text Editor '{0}': {1}".format(text.name, E))
-
-                else:
-                    bpy.ops.text.open(filepath=final_filepath)
-
-                    for text in bpy.data.texts:
-                        if text.filepath == final_filepath:
-                            break
-
-                    self.report({'INFO'}, "Flight path saved in \"%s\"" % (final_filepath))
-            else:
-                # save only internally
+            except Exception as E:
+                # fallback, dump the CSV content to Text Editor
                 text = flight_path_file_text(self.filename)
                 text.write(flight_path.dump())
 
-                self.report({'INFO'}, "Flight path animation written in \"%s\"" % (text.name))
+                self.report({'WARNING'},
+                        "Flight path could not be saved externally. " \
+                        "Look for it in the Text Editor '{0}': {1}".format(text.name, E))
 
-            # set exported text as active
-            if context.area.type == 'TEXT_EDITOR':
-                context.space_data.text = text
+            else:
+                bpy.ops.text.open(filepath=final_filepath)
+
+                for text in bpy.data.texts:
+                    if text.filepath == final_filepath:
+                        break
+
+                # set exported text as active
+                if context.area.type == 'TEXT_EDITOR':
+                    context.space_data.text = text
+
+                self.report({'INFO'}, "Flight path saved in \"%s\"" % (final_filepath))
+
 
         return {'FINISHED'}
 
     def invoke(self, context, event):
         wm = context.window_manager
-        return wm.invoke_props_dialog(self)
+        wm.fileselect_add(self)
+        return {'RUNNING_MODAL'}
 
 
 # ############################################################
