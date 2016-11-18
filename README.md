@@ -8,5 +8,14 @@ A collection of tools to help with the creation and export of flight path data i
   - create your choreography
   - select all objects you want to export
   - Menu > File > Export > Export CSV UAV data
+  
+  For playback use sequence-player.py
 
-To do: Add interpolation type
+
+## Import drone positions from YAML
+
+  - install uav_initial_import.py in blender
+  - Menu > File > Import > Import UAVs
+  
+  
+  
