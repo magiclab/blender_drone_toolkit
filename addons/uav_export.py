@@ -1,9 +1,9 @@
 bl_info = {
     "name": "UAV Export",
     "author": "Bassam Kurdali",
-    "version": (0, 4),
+    "version": (0, 5),
     "blender": (2, 78, 0),
-    "location": "File->Export->Export CSV UAV Data",
+    "location": "File->Export->magiclab way-point export",
     "description": "Export selected object locations/frames for UAV control",
     "warning": "",
     "wiki_url": "",
@@ -28,6 +28,10 @@ class ExportCSVLocations(Operator, ExportHelper):
             default="*.csv",
             options={'HIDDEN'},
             maxlen=255)
+
+    @classmethod
+    def poll(cls, context):
+        return True if context.selected_objects else False
 
     def execute(self, context):
         """ build csv list based on selected object location keyframes"""
@@ -58,15 +62,24 @@ class ExportCSVLocations(Operator, ExportHelper):
                 for keyframe in fc.keyframe_points:
                     frame = keyframe.co[0]
                     if frame >= start_frame and frame <= end_frame:
-                        frames.add((frame, types[keyframe.interpolation]))
+                        frames.add((frame, types[keyframe.interpolation]))               
             return frames
 
         # we want to limit number of samples, so some excess precalculations
         total_frames = set()
         ob_frames = {ob.name:None for ob in obs}
+        ob_glows = {ob.name:[] for ob in obs}
         for ob in obs:
             frames = get_frames(ob)
-            ob_frames[ob.name] = sorted(frames, key=lambda x: x[0]) 
+            glow_curves = [
+                fc for fc in ob.animation_data.action.fcurves
+                if fc.data_path in ('glow', '["glow"]')]
+            if glow_curves:
+                glow_curve = glow_curves[0]
+                for keyframe in glow_curve.keyframe_points:
+                    ob_glows[ob.name].append([
+                    '', '', '', keyframe.co[0], keyframe.co[1], ''])
+            ob_frames[ob.name] = sorted(frames, key=lambda x: x[0])
             total_frames = total_frames.union(frames)
         total_frames = sorted(total_frames, key=lambda x:x[0])
         for frame in total_frames:
@@ -74,30 +87,54 @@ class ExportCSVLocations(Operator, ExportHelper):
             for ob in obs:
                 if frame in ob_frames[ob.name]:
                     index = ob_frames[ob.name].index(frame)
-                    ob_frames[ob.name][index] = (
+                    ob_frames[ob.name][index] = [
                         ob.location[0],
                         ob.location[1],
                         ob.location[2],
-                        (frame[0] - start_frame) / frames_per_second,
-                        frame[1])
+                        frame[0], #(frame[0] - start_frame) / frames_per_second
+                        '', # will be filled with glow
+                        frame[1]]
+
+        # merge ob_frames and ob_glows (location and glow keyframes)
+        # ob_frames = {ob.name: [(x,y,z,frame, None, type),],}
+        # ob_glows = {ob.name: [(None, None, None, frame, glow, None),])
+        # ob_frames final should be {ob.name:}
+        for ob in obs:
+            location_frames = ob_frames[ob.name]
+            glow_frames = ob_glows[ob.name]
+            frames_from_locs = [f[3] for f in location_frames]
+            removals = []
+            for i, glow_frame in enumerate(glow_frames):
+                if glow_frame[3] in frames_from_locs:
+                    location_frames[i][4] = glow_frame[4]
+                    removals.append(i)
+            for i in reversed(removals):
+                glow_frames.pop(i)
+            location_frames.extend(glow_frames)
+            location_frames.sort(key=lambda x:x[3])
+            for location_frame in location_frames:
+                location_frame[3] = (location_frame[3] - start_frame) / frames_per_second
+            ob_frames[ob.name] = location_frames
+        print(ob_frames)
         with open(self.filepath, 'w', newline='') as csvfile:
             uavwriter = csv.writer(
                 csvfile, delimiter =',', quoting=csv.QUOTE_MINIMAL)
-            uavwriter.writerow(["id", "x[m]", "y[m]", "z[m]", "t[s]", "type"])
+            uavwriter.writerow([
+                "id", "x[m]", "y[m]", "z[m]", "type", "glow", "t[s]"])
             for ob_name, ob_data in ob_frames.items():
                 for datum in ob_data:
                     uavwriter.writerow(
                         [ob_name] + 
                         [d for d in datum[:3]] +
-                        ["{0:.2f}".format(datum[3]),
-                        datum[4]])
+                        [datum[5], datum[4], 
+                        "{0:.2f}".format(datum[3])])
 
         return {'FINISHED'}
 
 
 def menu_func_export(self, context):
     self.layout.operator(
-        ExportCSVLocations.bl_idname, text="Export CSV UAV Data")
+        ExportCSVLocations.bl_idname, text="magiclab way-point export")
 
 
 def register():
