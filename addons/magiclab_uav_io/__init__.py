@@ -1,7 +1,7 @@
 bl_info = {
     "name": "MagicLab UAV IO",
     "author": "Bassam Kurdali",
-    "version": (0, 2),
+    "version": (0, 3),
     "blender": (2, 78, 0),
     "location": "File->Import-Export",
     "description": "Export/Export Object Animations for UAV Control",

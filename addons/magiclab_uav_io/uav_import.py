@@ -150,26 +150,47 @@ class ImportInitialUAVs(Operator, ImportHelper):
                     def load(data):
                         """ super hackish special loader when no yaml lib """
                         print("Warning: hackish parser")
-                        keys  = ("-id", "channel", "initialPosition")
+                        initial_character = '-'
+                        keys  = ("id", "channel", "initialPosition")
+                        eval_funcs = (int, int, eval)
                         lines = data.split('\n')
                         lines = [
                             ''.join(line.split()) for line in lines
                             if ''.join(line.split())]
                         struct = {"crazyflies":[]}
-                        while lines:
-                            if not any(lines[0].startswith(k) for k in keys):
+                        getting_crazyflies = False
+                        found_all_crazyflies = False
+                        in_fly = False
+                        current_crazy_fly = {k: None for k in keys}
+                        while lines and not found_all_crazyflies:
+                            if lines[0].startswith('crazyflies'):
                                 lines.pop(0)
-                            elif lines[0].startswith('-id'):
-                                id = int(lines[0].split(':')[-1])
-                                channel = int(lines[1].split(':')[-1])
-                                initialPosition = eval(lines[2].split(':')[-1])
-                                struct["crazyflies"].append({
-                                    "id": id,
-                                    "channel": channel,
-                                    "initialPosition": initialPosition})
-                                del lines[:3]
-                            else:
+                                getting_crazyflies = True
+                            elif lines[0].startswith(initial_character) and getting_crazyflies and not in_fly:
+                                lines[0] = lines[0][1:]
+                                in_fly = True
+                            elif getting_crazyflies and in_fly and any(lines[0].startswith(k) for k in keys):
+                                values = lines[0].split(':')
+                                print(values)
+                                idx = keys.index(values[0])
+                                current_crazy_fly[values[0]] = eval_funcs[idx](values[-1])
+                                print( [v for v in current_crazy_fly.values()])
+                                if all(None != v for v in current_crazy_fly.values()):
+                                    struct["crazyflies"].append(current_crazy_fly)
+                                    current_crazy_fly = {k: None for k in keys}
+                                    in_fly = False
+                                lines.pop(0)
+                            elif getting_crazyflies and in_fly and lines[0].startswith(initial_character):
                                 raise ParserError
+                                break
+                            elif getting_crazyflies and any(lines[0].startswith(k) for k in keys) and not in_fly:
+                                lines.pop(0)
+                            elif getting_crazyflies:
+                                lines.pop(0)
+                                getting_crazyflies = False
+                            else:
+                                lines.pop(0)
+                        print(struct)
                         return struct
 
         scene = context.scene
