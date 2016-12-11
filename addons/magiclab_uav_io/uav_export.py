@@ -107,7 +107,6 @@ class ExportCSVLocations(Operator, ExportHelper):
                 location_frame[3] = (
                     location_frame[3] - start_frame) / frames_per_second
             ob_frames[ob.name] = location_frames
-        print(ob_frames)
         with open(self.filepath, 'w', newline='') as csvfile:
             uavwriter = csv.writer(
                 csvfile, delimiter =',', quoting=csv.QUOTE_MINIMAL)
