@@ -7,8 +7,8 @@ from bpy.types import Operator
 
 class ExportCSVLocations(Operator, ExportHelper):
     """Export Object Locations as CSV"""
-    bl_idname = "object.export_csv_locations"
-    bl_label = "Export CSV Locations"
+    bl_idname = "object.magiclab_uav_export"
+    bl_label = "Magiclab Export CSV Locations"
 
     filename_ext = ".csv"
 
@@ -66,7 +66,10 @@ class ExportCSVLocations(Operator, ExportHelper):
                 glow_curve = glow_curves[0]
                 for keyframe in glow_curve.keyframe_points:
                     ob_glows[ob.name].append([
-                    '', '', '', keyframe.co[0], keyframe.co[1], ''])
+                    '', '', '',
+                    keyframe.co[0],
+                    0.5 if 0.3 < keyframe.co[1] and keyframe.co[1] < 0.7 else int(keyframe.co[1]),
+                    ''])
             ob_frames[ob.name] = sorted(frames, key=lambda x: x[0])
             total_frames = total_frames.union(frames)
         total_frames = sorted(total_frames, key=lambda x:x[0])
@@ -116,7 +119,7 @@ class ExportCSVLocations(Operator, ExportHelper):
                         [ob_name] +
                         [d for d in datum[:3]] +
                         [datum[5],
-                        0.5 if 0.3 < datum[4] and datum[4] < 0.7 else int(datum[4]),
+                        datum[4],
                         "{0:.2f}".format(datum[3])])
 
         return {'FINISHED'}
@@ -133,8 +136,6 @@ def register():
 
 
 def unregister():
-    bpy.utils.unregister_class(ExportCSVLocations)
     bpy.types.INFO_MT_file_export.remove(menu_func_export)
+    bpy.utils.unregister_class(ExportCSVLocations)
 
-if __name__ == "__main__":
-    register()

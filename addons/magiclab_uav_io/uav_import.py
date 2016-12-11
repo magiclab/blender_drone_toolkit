@@ -232,7 +232,6 @@ def register():
 
 
 def unregister():
-
     bpy.utils.unregister_class(ImportInitialUAVs)
     bpy.types.INFO_MT_file_import.remove(menu_func_import)
     bpy.app.handlers.frame_change_pre.remove(drone_mat_updater)

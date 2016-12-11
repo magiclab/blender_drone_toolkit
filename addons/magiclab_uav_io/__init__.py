@@ -1,13 +1,13 @@
 bl_info = {
     "name": "MagicLab UAV IO",
     "author": "Bassam Kurdali",
-    "version": (0, 1),
+    "version": (0, 2),
     "blender": (2, 78, 0),
-    "location": "File->Export",
+    "location": "File->Import-Export",
     "description": "Export/Export Object Animations for UAV Control",
     "warning": "",
     "wiki_url": "",
-    "category": "Animation",
+    "category": "Import-Export",
     }
 
 if "bpy" in locals():
@@ -34,29 +34,70 @@ class MagicLabUAVIO(bpy.types.AddonPreferences):
         layout.prop(self, "module_path", text="Python Site Packages")
 
 
+class MagicLabAnimation(bpy.types.Panel):
+    bl_label = 'Magic Lab Animation'
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'TOOLS'
+    bl_category = 'MagicLab'
+
+    @classmethod
+    def poll(cls, context):
+        return (
+            context.active_object and
+            "channel" in context.active_object.keys())
+
+    def draw(self, context):
+        layout = self.layout
+        active = context.active_object
+        row = layout.row()
+        row.prop(active, "glow")
+        row = layout.row()
+        row.prop(active, "location")
+        row = layout.row()
+
+
+class MagicLabIO(bpy.types.Panel):
+    bl_label = 'Magic Lab I/O'
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'TOOLS'
+    bl_category = 'MagicLab'
+
+    def draw(self, context):
+        layout = self.layout
+        row = layout.row()
+        row.operator(
+            uav_import.ImportInitialUAVs.bl_idname,
+            text="Import Waypoints",
+            icon='FILE')
+        row = layout.row()
+        row.operator(
+            uav_export.ExportCSVLocations.bl_idname,
+            text="Export Waypoints",
+            icon='FILE')
+
 def register():
-    def glow_get(self):
-        glow = self['glow']
-        return 0.5 if 0.3 < glow and glow < 0.7 else int(glow)
-    def glow_set(self, value):
-        self['glow'] = 0.5 if 0.3 < value and value < 0.7 else int(value)
     def glow_update(self, context):
-        pass
+        if self.active_material and "DRONE" in self.active_material.keys():
+            self.active_material.update_tag()
+            context.scene.update()
     bpy.types.Object.glow = FloatProperty(
         default=0.0, name="glow",
         min=0.0, max=2.0,
         soft_min=0.0, soft_max=2.0,
-        set=glow_set, get=glow_get, update=glow_update)
-    bpy.utils.register_class(MagicLabUAVIO)
+        update=glow_update)
+
     uav_import.register()
     uav_export.register()
+    bpy.utils.register_class(MagicLabAnimation)
+    bpy.utils.register_class(MagicLabIO)
 
 
 def unregister():
-    del(bpy.types.Object.glow)
-    bpy.utils.unregister_class(MagicLabUAVIO)
-    uav_export.register()
+    bpy.utils.unregister_class(MagicLabAnimation)
+    bpy.utils.unregister_class(MagicLabIO)
+    uav_import.unregister()
     uav_export.unregister()
+    del(bpy.types.Object.glow)
 
 if __name__ == "__main__":
     register()
