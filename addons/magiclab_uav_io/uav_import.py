@@ -136,11 +136,17 @@ class ImportInitialUAVs(Operator, ImportHelper):
             )
 
     def execute(self, context):
+
+        packages_path = ""
         try:
-            packages_path = ""
             prefs = context.user_preferences.addons['magiclab_uav_io']
+        except KeyError:
+            print("couldn't import pref")
+        else:
+            packages_path = prefs.preferences.module_path
+        try:
             import yaml
-        except (ImportError, KeyError):
+        except ImportError:
             sys.path.append(packages_path)
             try:
                 import yaml
@@ -171,10 +177,8 @@ class ImportInitialUAVs(Operator, ImportHelper):
                                 in_fly = True
                             elif getting_crazyflies and in_fly and any(lines[0].startswith(k) for k in keys):
                                 values = lines[0].split(':')
-                                print(values)
                                 idx = keys.index(values[0])
                                 current_crazy_fly[values[0]] = eval_funcs[idx](values[-1])
-                                print( [v for v in current_crazy_fly.values()])
                                 if all(None != v for v in current_crazy_fly.values()):
                                     struct["crazyflies"].append(current_crazy_fly)
                                     current_crazy_fly = {k: None for k in keys}
@@ -190,7 +194,6 @@ class ImportInitialUAVs(Operator, ImportHelper):
                                 getting_crazyflies = False
                             else:
                                 lines.pop(0)
-                        print(struct)
                         return struct
 
         scene = context.scene

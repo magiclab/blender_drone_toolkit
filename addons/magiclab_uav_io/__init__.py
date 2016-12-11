@@ -1,7 +1,7 @@
 bl_info = {
     "name": "MagicLab UAV IO",
     "author": "Bassam Kurdali",
-    "version": (0, 3),
+    "version": (0, 4),
     "blender": (2, 78, 0),
     "location": "File->Import-Export",
     "description": "Export/Export Object Animations for UAV Control",
@@ -22,7 +22,7 @@ import bpy
 from bpy.props import StringProperty, FloatProperty
 
 
-class MagicLabUAVIO(bpy.types.AddonPreferences):
+class MagicLabUAVPrefs(bpy.types.AddonPreferences):
     bl_idname = __name__
     module_path = StringProperty(
         default='/usr/lib64/python3.5/site-packages', subtype ='DIR_PATH')
@@ -32,6 +32,27 @@ class MagicLabUAVIO(bpy.types.AddonPreferences):
         layout.label(
             "Blender does not include Yaml, we need to find the module")
         layout.prop(self, "module_path", text="Python Site Packages")
+
+
+class ConstantifyGlowKeyFrames(bpy.types.Operator):
+    """ Make Glow Keyframes Constant type """
+    bl_idname = "object.constant_glow_keyframes"
+    bl_label = "Make glow keyframes constant"
+
+
+    @classmethod
+    def poll(cls, context):
+        return (
+            context.active_object and
+            context.active_object.animation_data and
+            context.active_object.animation_data.action)
+
+    def execute(self, context):
+        for fcurve in context.active_object.animation_data.action.fcurves:
+            if fcurve.data_path in ("glow", '["glow"]'):
+                for kp in fcurve.keyframe_points:
+                    kp.interpolation = 'CONSTANT'
+        return {'FINISHED'}
 
 
 class MagicLabAnimation(bpy.types.Panel):
@@ -51,6 +72,10 @@ class MagicLabAnimation(bpy.types.Panel):
         active = context.active_object
         row = layout.row()
         row.prop(active, "glow")
+        row.operator(
+            ConstantifyGlowKeyFrames.bl_idname,
+            text="Make Keframes Constant"
+        )
         row = layout.row()
         row.prop(active, "location")
         row = layout.row()
@@ -76,6 +101,7 @@ class MagicLabIO(bpy.types.Panel):
             icon='FILE')
 
 def register():
+    bpy.utils.register_class(MagicLabUAVPrefs)
     def glow_update(self, context):
         if self.active_material and "DRONE" in self.active_material.keys():
             self.active_material.update_tag()
@@ -88,6 +114,7 @@ def register():
 
     uav_import.register()
     uav_export.register()
+    bpy.utils.register_class(ConstantifyGlowKeyFrames)
     bpy.utils.register_class(MagicLabAnimation)
     bpy.utils.register_class(MagicLabIO)
 
@@ -95,9 +122,11 @@ def register():
 def unregister():
     bpy.utils.unregister_class(MagicLabAnimation)
     bpy.utils.unregister_class(MagicLabIO)
+    bpy.utils.unregister_class(ConstantifyGlowKeyFrames)
     uav_import.unregister()
     uav_export.unregister()
     del(bpy.types.Object.glow)
+    bpy.utils.unregister_class(MagicLabUAVPrefs)
 
 if __name__ == "__main__":
     register()
