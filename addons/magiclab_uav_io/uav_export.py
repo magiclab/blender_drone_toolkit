@@ -97,12 +97,14 @@ class ExportCSVLocations(Operator, ExportHelper):
             removals = []
             for i, glow_frame in enumerate(glow_frames):
                 if glow_frame[3] in frames_from_locs:
-                    location_frames[i][4] = glow_frame[4]
+                    index = frames_from_locs.index(glow_frame[3])
+                    location_frames[index][4] = glow_frame[4] # found it!!!!
+
                     removals.append(i)
             for i in reversed(removals):
                 glow_frames.pop(i)
             location_frames.extend(glow_frames)
-            location_frames.sort(key=lambda x:x[3])
+            location_frames.sort(key=lambda x:x[3]) # not working???
             for location_frame in location_frames:
                 location_frame[3] = (
                     location_frame[3] - start_frame) / frames_per_second
