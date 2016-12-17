@@ -68,7 +68,7 @@ class ExportCSVLocations(Operator, ExportHelper):
                     ob_glows[ob.name].append([
                     '', '', '',
                     keyframe.co[0],
-                    keyframe.co[1] if keyframe.co[1] < 1 else int(keyframe.co[1]),
+                    keyframe.co[1],
                     ''])
             ob_frames[ob.name] = sorted(frames, key=lambda x: x[0])
             total_frames = total_frames.union(frames)
@@ -99,7 +99,6 @@ class ExportCSVLocations(Operator, ExportHelper):
                 if glow_frame[3] in frames_from_locs:
                     index = frames_from_locs.index(glow_frame[3])
                     location_frames[index][4] = glow_frame[4] # found it!!!!
-
                     removals.append(i)
             for i in reversed(removals):
                 glow_frames.pop(i)
