@@ -68,7 +68,7 @@ class ExportCSVLocations(Operator, ExportHelper):
                     ob_glows[ob.name].append([
                     '', '', '',
                     keyframe.co[0],
-                    0.5 if 0.3 < keyframe.co[1] and keyframe.co[1] < 0.7 else int(keyframe.co[1]),
+                    keyframe.co[1] if keyframe.co[1] < 1 else int(keyframe.co[1]),
                     ''])
             ob_frames[ob.name] = sorted(frames, key=lambda x: x[0])
             total_frames = total_frames.union(frames)
