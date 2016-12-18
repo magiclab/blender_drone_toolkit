@@ -172,22 +172,36 @@ class ImportInitialUAVs(Operator, ImportHelper):
                             if lines[0].startswith('crazyflies'):
                                 lines.pop(0)
                                 getting_crazyflies = True
-                            elif lines[0].startswith(initial_character) and getting_crazyflies and not in_fly:
+                            elif (
+                                    lines[0].startswith(initial_character) and
+                                    getting_crazyflies and not in_fly):
                                 lines[0] = lines[0][1:]
                                 in_fly = True
-                            elif getting_crazyflies and in_fly and any(lines[0].startswith(k) for k in keys):
+                            elif (
+                                    getting_crazyflies and in_fly and
+                                    any(lines[0].startswith(k) for k in keys)):
                                 values = lines[0].split(':')
                                 idx = keys.index(values[0])
-                                current_crazy_fly[values[0]] = eval_funcs[idx](values[-1])
-                                if all(None != v for v in current_crazy_fly.values()):
-                                    struct["crazyflies"].append(current_crazy_fly)
+                                current_crazy_fly[values[0]] = eval_funcs[idx](
+                                    values[-1])
+                                if all(
+                                        None != v
+                                        for v in current_crazy_fly.values()):
+                                    struct["crazyflies"].append(
+                                        current_crazy_fly)
                                     current_crazy_fly = {k: None for k in keys}
                                     in_fly = False
                                 lines.pop(0)
-                            elif getting_crazyflies and in_fly and lines[0].startswith(initial_character):
+                            elif (
+                                    getting_crazyflies and in_fly
+                                    and lines[0].startswith(initial_character)):
                                 raise ParserError
                                 break
-                            elif getting_crazyflies and any(lines[0].startswith(k) for k in keys) and not in_fly:
+                            elif (
+                                    getting_crazyflies
+                                    and any(
+                                        lines[0].startswith(k) for k in keys)
+                                    and not in_fly):
                                 lines.pop(0)
                             elif getting_crazyflies:
                                 lines.pop(0)
