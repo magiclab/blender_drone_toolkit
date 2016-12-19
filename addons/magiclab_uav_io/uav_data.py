@@ -43,43 +43,72 @@ def get_console(mat, text, which='links'):
     node_values = [
         'bl_idname', 'height', 'width', 'width_hidden',
         'mute', 'hide', 'label', 'location', 'select']
-    links = [{
-        'from_socket': {
-            'name': link.from_socket.name,
-            'index': link.from_socket.getIndex()},
-        'from_node': {'name': link.from_node.name},
-        'to_socket': {
-            'name': link.to_socket.name,
-            'index': link.to_socket.getIndex()},
-        'to_node':{
-            'name': link.to_node.name}} for link in mat.node_tree.links]
-    drivers = [{
-        'data_path': driver.data_path, 'array_index': driver.array_index,
-        'driver': {'type': driver.driver.type, },
-        'variables': [{'type': v.type,'targets': [
-            {'data_path': t.data_path} for t in v.targets]}
-            for v in driver.driver.variables],
-        'keyframe_points': get_keyframe_points(driver)
-        } for driver in mat.node_tree.animation_data.drivers]
-    fcurves = [{
-        'data_path': fc.data_path, 'array_index': fc.array_index,
-        'modifiers': [{
-            'type': m.type, 'function_type': m.function_type,
-            'use_additive': m.use_additive, 'amplitude': m.amplitude,
-            'phase_multiplier': m.phase_multiplier,
-            'value_offset': m.value_offset,
-            'phase_offset': m.phase_offset}for m in fc.modifiers],
-        'keyframe_points': get_keyframe_points(fc)
-        } for fc in mat.node_tree.animation_data.action.fcurves]
-    nodes = {
-        n.name: {
-            attr: getattr(n,attr) for attr in node_values}
-        for n in mat.node_tree.nodes}
     if which == 'links':
-        text.write(links.__repr__())
-    elif which == 'drivers':
-        text.write(drivers.__repr__())
-    elif which == 'fcurves':
-        text.write(fcurves.__repr__())
+        things = [{
+            'from_socket': {
+                'name': link.from_socket.name,
+                'index': link.from_socket.getIndex()},
+            'from_node': {'name': link.from_node.name},
+            'to_socket': {
+                'name': link.to_socket.name,
+                'index': link.to_socket.getIndex()},
+            'to_node':{
+                'name': link.to_node.name}} for link in mat.node_tree.links]
     elif which == 'nodes':
-        text.write(nodes.__repr__())
+        things = {
+            node.name: {
+                attr: getattr(node, attr)
+                for attr in node_values if attr in dir(node)} 
+            for node in mat.node_tree.nodes}
+    elif which == 'drivers':
+        things = [{
+            'data_path': driver.data_path, 'array_index': driver.array_index,
+            'driver': {'type': driver.driver.type, },
+            'variables': [{'type': v.type,'targets': [
+                {'data_path': t.data_path} for t in v.targets]}
+                for v in driver.driver.variables],
+            'keyframe_points': get_keyframe_points(driver)
+            } for driver in mat.node_tree.animation_data.drivers]
+    elif which == 'fcurves':
+        things = [{
+            'data_path': fc.data_path, 'array_index': fc.array_index,
+            'modifiers': [{
+                'type': m.type, 'function_type': m.function_type,
+                'use_additive': m.use_additive, 'amplitude': m.amplitude,
+                'phase_multiplier': m.phase_multiplier,
+                'value_offset': m.value_offset,
+                'phase_offset': m.phase_offset}for m in fc.modifiers],
+            'keyframe_points': get_keyframe_points(fc)
+            } for fc in mat.node_tree.animation_data.action.fcurves]
+    elif which == 'object_fcurves':
+        ob = mat
+        things = [{
+            'data_path': fc.data_path, 'array_index': fc.array_index,
+            'modifiers': [{
+                'type': m.type, 'function_type': m.function_type,
+                'use_additive': m.use_additive, 'amplitude': m.amplitude,
+                'phase_multiplier': m.phase_multiplier,
+                'value_offset': m.value_offset,
+                'phase_offset': m.phase_offset}for m in fc.modifiers],
+            'keyframe_points': get_keyframe_points(fc)
+            } for fc in ob.animation_data.action.fcurves]
+    elif which == 'object_drivers':
+        ob = mat
+        things = [{
+            'data_path': driver.data_path, 'array_index': driver.array_index,
+            'driver': {'type': driver.driver.type, },
+            'variables': [{'type': v.type,'targets': [
+                {'data_path': t.data_path} for t in v.targets]}
+                for v in driver.driver.variables],
+            'keyframe_points': get_keyframe_points(driver)
+            } for driver in ob.animation_data.drivers]
+    elif which == 'mat_drivers':
+        things = [{
+            'data_path': driver.data_path, 'array_index': driver.array_index,
+            'driver': {'type': driver.driver.type, },
+            'variables': [{'type': v.type,'targets': [
+                {'data_path': t.data_path} for t in v.targets]}
+                for v in driver.driver.variables],
+            'keyframe_points': get_keyframe_points(driver)
+            } for driver in mat.animation_data.drivers]
+    text.write(things.__repr())
