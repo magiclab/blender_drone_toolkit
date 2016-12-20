@@ -216,6 +216,12 @@ class ImportInitialUAVs(Operator, ImportHelper):
                 uav_ob.active_material = None
                 uav_ob.material_slots[0].link = 'OBJECT'
                 uav_ob.material_slots[0].material = uav_mat
+
+            if context.space_data and context.space_data.type == 'VIEW_3D':
+                context.space_data.viewport_shade = 'SOLID'
+            context.scene.render.engine = 'CYCLES'
+            update_mats.drive_drone_solids(context.scene)
+
         else:
             self.report({'ERROR'}, "Empty File")
             return {'CANCELLED'}
