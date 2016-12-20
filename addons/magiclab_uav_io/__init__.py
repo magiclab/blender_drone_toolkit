@@ -1,7 +1,7 @@
 bl_info = {
     "name": "MagicLab UAV IO",
     "author": "Bassam Kurdali",
-    "version": (0, 7),
+    "version": (0, 8),
     "blender": (2, 78, 0),
     "location": "File->Import-Export",
     "description": "Export/Export Object Animations for UAV Control",
@@ -14,9 +14,11 @@ if "bpy" in locals():
     import importlib
     importlib.reload(uav_export)
     importlib.reload(uav_import)
+    importlib.reload(update_mats)
 else:
     from . import uav_export
     from . import uav_import
+    from . import update_mats
 
 import bpy
 from bpy.props import StringProperty, FloatProperty
@@ -100,6 +102,20 @@ class MagicLabIO(bpy.types.Panel):
             text="Export Waypoints",
             icon='FILE')
 
+class MagicLabView(bpy.types.Panel):
+    bl_label = 'Magic Lab View'
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'TOOLS'
+    bl_category = 'MagicLab'
+
+    def draw(self, context):
+        layout = self.layout
+        row = layout.row()
+        row.operator(
+            update_mats.MakeSolidsUpdate.bl_idname,
+            text="Solid View"
+        )
+
 def register():
     bpy.utils.register_class(MagicLabUAVPrefs)
     def glow_update(self, context):
@@ -111,20 +127,23 @@ def register():
         min=0.0, max=2.0,
         soft_min=0.0, soft_max=2.0,
         update=glow_update)
-
     uav_import.register()
     uav_export.register()
+    update_mats.register()
     bpy.utils.register_class(ConstantifyGlowKeyFrames)
     bpy.utils.register_class(MagicLabAnimation)
     bpy.utils.register_class(MagicLabIO)
+    bpy.utils.register_class(MagicLabView)
 
 
 def unregister():
+    bpy.utils.unregister_class(MagicLabView)
     bpy.utils.unregister_class(MagicLabAnimation)
     bpy.utils.unregister_class(MagicLabIO)
     bpy.utils.unregister_class(ConstantifyGlowKeyFrames)
     uav_import.unregister()
     uav_export.unregister()
+    update_mats.unregister()
     del(bpy.types.Object.glow)
     bpy.utils.unregister_class(MagicLabUAVPrefs)
 

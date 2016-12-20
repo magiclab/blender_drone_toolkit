@@ -1,8 +1,10 @@
 if "bpy" in locals():
     import importlib
     importlib.reload(uav_data)
+    importlib.reload(update_mats)
 else:
     from . import uav_data
+    from . import update_mats
 
 import bpy
 import bmesh
@@ -21,35 +23,6 @@ def drone_mat_updater(scene):
     mats = (mat for mat in bpy.data.materials if "DRONE" in mat.keys())
     for mat in mats: mat.update_tag()
     scene.update()
-
-
-def driver_add(prop, data_path, array_index):
-    """ fallbacky driver adding """
-    try:
-        driver = prop.driver_add(data_path, array_index)
-    except TypeError:
-        driver = prop.driver_add(data_path)
-    return driver
-
-
-def fcurve_add(action, data_path, array_index):
-    """ fallbacky fcurve adding """
-    try:
-        fcurve = action.fcurves.new(data_path)
-    except TypeError:
-        fcurve = action.fcurves.new(data_path, array_index)
-    return fcurve
-
-
-def copy_keyframes_to_curve(curve, kps):
-    """ copies list of keyframe props to a curve """
-    while curve.keyframe_points:
-        curve.keyframe_points.remove(curve.keyframe_points[-1])
-    curve.keyframe_points.add(count=len(kps))
-    for i, kp in enumerate(kps):
-        for prop, value in kp.items():
-            setattr(curve.keyframe_points[i], prop, value)
-
 
 
 class ParserError(Exception):
@@ -87,7 +60,7 @@ def make_drone_material(name, target_id):
     animation_data = mat.node_tree.animation_data_create()
     # add drivers
     for driver in uav_data.mat_drivers:
-        mat_driver = driver_add(
+        mat_driver = update_mats.driver_add(
             tree, driver['data_path'], driver['array_index'])
         while mat_driver.modifiers:
             mat_driver.modifiers.remove(mat_driver.modifiers[-1])
@@ -106,14 +79,16 @@ def make_drone_material(name, target_id):
                 for prop, value in target.items():
                     if not prop == 'id':
                         setattr(variable_target, prop, value)
-        copy_keyframes_to_curve(mat_driver, driver["keyframe_points"])
+        update_mats.copy_keyframes_to_curve(
+            mat_driver, driver["keyframe_points"])
     # add animation_curves
     action = bpy.data.actions.new("{}NodeTreeAction".format(name))
     tree.animation_data.action = action
     for fcurve in uav_data.mat_fcurves:
-        mat_fcurve = fcurve_add(
+        mat_fcurve = update_mats.fcurve_add(
             action, fcurve['data_path'], fcurve['array_index'])
-        copy_keyframes_to_curve(mat_fcurve, fcurve["keyframe_points"])
+        update_mats.copy_keyframes_to_curve(
+            mat_fcurve, fcurve["keyframe_points"])
         for modifier in fcurve['modifiers']:
             fcurve_mod = mat_fcurve.modifiers.new(modifier['type'])
             for name, value in modifier.items():
