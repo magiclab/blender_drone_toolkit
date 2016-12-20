@@ -14,15 +14,6 @@ from bpy_extras.io_utils import ImportHelper
 from bpy.props import StringProperty
 from bpy.types import Operator
 from mathutils import Vector
-from bpy.app.handlers import persistent
-
-
-@persistent
-def drone_mat_updater(scene):
-    """ on frame change updater for drone material """
-    mats = (mat for mat in bpy.data.materials if "DRONE" in mat.keys())
-    for mat in mats: mat.update_tag()
-    scene.update()
 
 
 class ParserError(Exception):
@@ -240,13 +231,8 @@ def menu_func_import(self, context):
 def register():
     bpy.utils.register_class(ImportInitialUAVs)
     bpy.types.INFO_MT_file_import.append(menu_func_import)
-    bpy.app.handlers.frame_change_pre.append(drone_mat_updater)
-    bpy.app.handlers.render_pre.append(drone_mat_updater)
 
 
 def unregister():
     bpy.utils.unregister_class(ImportInitialUAVs)
     bpy.types.INFO_MT_file_import.remove(menu_func_import)
-    bpy.app.handlers.frame_change_pre.remove(drone_mat_updater)
-    bpy.app.handlers.render_pre.remove(drone_mat_updater)
-    

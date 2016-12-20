@@ -27,11 +27,19 @@ else:
     from . import uav_data
 
 import bpy
+from bpy.app.handlers import persistent
+
+
+@persistent
+def drone_mat_updater(scene):
+    """ on frame change updater for drone material """
+    mats = (mat for mat in bpy.data.materials if "DRONE" in mat.keys())
+    for mat in mats: mat.update_tag()
+    scene.update()
 
 
 def driver_add(prop, data_path, array_index):
     """ fallbacky driver adding """
-    print(prop, data_path, array_index)
     try:
         driver = prop.driver_add(data_path, array_index)
     except TypeError:
@@ -220,17 +228,35 @@ class MakeSolidsUpdate(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return True
+        return context.space_data and context.space_data.type == 'VIEW_3D'
 
     def execute(self, context):
-        scene = context.scene
-        drive_drone_solids(scene)
+        context.space_data.viewport_shade = 'SOLID'
+        context.scene.render.engine = 'CYCLES'
+        drive_drone_solids(context.scene)
+        while drone_mat_updater in bpy.app.handlers.frame_change_pre:
+            bpy.app.handlers.frame_change_pre.remove(drone_mat_updater)
         return {'FINISHED'}
 
 
+class MakeMaterialUpdate(bpy.types.Operator):
+    bl_idname = "object.make_materials_updaters"
+    bl_label = "make material view show material interactivity"
+
+    @classmethod
+    def poll(cls, context):
+        return context.space_data and context.space_data.type == 'VIEW_3D'
+
+    def execute(self, context):
+        context.space_data.viewport_shade = 'MATERIAL'
+        bpy.app.handlers.frame_change_pre.append(drone_mat_updater)
+        return {'FINISHED'}
+
 def register():
     bpy.utils.register_class(MakeSolidsUpdate)
+    bpy.utils.register_class(MakeMaterialUpdate)
 
 
 def unregister():
     bpy.utils.unregister_class(MakeSolidsUpdate)
+    bpy.utils.unregister_class(MakeMaterialUpdate)

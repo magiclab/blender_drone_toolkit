@@ -1,7 +1,7 @@
 bl_info = {
     "name": "MagicLab UAV IO",
     "author": "Bassam Kurdali",
-    "version": (0, 8),
+    "version": (0, 9),
     "blender": (2, 78, 0),
     "location": "File->Import-Export",
     "description": "Export/Export Object Animations for UAV Control",
@@ -113,7 +113,11 @@ class MagicLabView(bpy.types.Panel):
         row = layout.row()
         row.operator(
             update_mats.MakeSolidsUpdate.bl_idname,
-            text="Solid View"
+            text="fast update"
+        )
+        row.operator(
+            update_mats.MakeMaterialUpdate.bl_idname,
+            text="slow update"
         )
 
 def register():
