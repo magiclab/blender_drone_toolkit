@@ -13,6 +13,11 @@ main_parent["DRONES"] = 1
 # driver objects are empties (parented to each other) with the drone ID tagged:
 parent.name = UAV_props_{id} , parent["id"] = id
 child.name = UAV_subprops_{id}, child["id"] = id
+
+OK, that caused circular deps! instead
+just have an animation source, uav_props
+put ["throbber"] property on it (animated) and hide it.
+all other props on the drone itself. should work!
 '''
 
 if "bpy" in locals():
@@ -73,6 +78,18 @@ def driver_setup(new_driver, driver_settings):
         new_driver, driver_settings["keyframe_points"])
 
 
+def copy_fcurves(fcurve_data, action):
+    for fc in fcurve_data:
+        fcurve = fcurve_add(
+            action, fc['data_path'], fc['array_index'])
+        copy_keyframes_to_curve(fcurve, fc['keyframe_points'])
+        for modifier in fc['modifiers']:
+            fcurve_mod = fcurve.modifiers.new(modifier['type'])
+            for name, value in modifier.items():
+                if not name == 'type':
+                    setattr(fcurve_mod, name, value)
+
+
 def get_object(scene, name, key, value, driver_target=None, ob_data=None):
     generator =(
         ob for ob in scene.objects if ob.name.startswith(name)
@@ -96,15 +113,7 @@ def get_object(scene, name, key, value, driver_target=None, ob_data=None):
                 action = created.animation_data.action = bpy.data.actions.new(
                     name=created.name)
 
-                for fc in uav_data.prop_fcurves:
-                    fcurve = fcurve_add(
-                        action, fc['data_path'], fc['array_index'])
-                    copy_keyframes_to_curve(fcurve, fc['keyframe_points'])
-                    for modifier in fc['modifiers']:
-                        fcurve_mod = fcurve.modifiers.new(modifier['type'])
-                        for name, value in modifier.items():
-                            if not name == 'type':
-                                setattr(fcurve_mod, name, value)
+
             elif name.startswith("UAV_subprops_"):
                 #create props
                 created["throb"] = 0
@@ -120,7 +129,7 @@ def get_object(scene, name, key, value, driver_target=None, ob_data=None):
         return created
 
 
-def check_drivers(mat, parent, child):
+def check_drivers(mat):
     """ quick check to make sure drivers are there and accounted for"""
     if not mat.animation_data: return False
     drivers = mat.animation_data.drivers
@@ -146,12 +155,11 @@ def check_drivers(mat, parent, child):
 def get_drone_stuff(drone, scene, props_holder):
     drone_id = drone.name.split('.')[0]
     # get drone objects
-    parent_name = "UAV_props_{}".format(drone_id)
-    child_name = "UAV_subprops_{}".format(drone_id)
-    parent = get_object(scene, parent_name, "id", drone_id, drone)
-    child = get_object(scene, child_name, "id", drone_id, parent)
-    parent.parent = props_holder
-    child.parent = parent
+    # parent_name = "UAV_props_{}".format(drone_id)
+    # child_name = "UAV_subprops_{}".format(drone_id)
+    # parent = get_object(scene, parent_name, "id", drone_id, drone)
+    # child = get_object(scene, child_name, "id", drone_id, parent)
+
     # get drone drivers or create them
     mat = drone.active_material
     #inject the ids
@@ -159,14 +167,31 @@ def get_drone_stuff(drone, scene, props_holder):
         for variable in driver["variables"]:
             for target in variable["targets"]:
                 if target["data_path"] == '["following"]':
-                    target["id"] = parent
+                    target["id"] = drone
                 elif target["data_path"] == '["throb"]':
-                    target["id"] = child
+                    target["id"] = drone
 
-    if not check_drivers(mat, parent, child):
-        # create the drivers
+    if not check_drivers(mat):
+        # make sure we have animation properties
         mat.animation_data_clear()
         mat.animation_data_create()
+        if not drone.animation_data:
+            drone.animation_data_create()
+        # Add the properties
+        drone["throbbing"] = drone["following"] = drone["throb"] = 0.0
+        # Add the object drivers
+        driver_sources = uav_data.prop_drivers + uav_data.subprop_drivers
+        for driver in driver_sources:
+            for variable in driver["variables"]:
+                for target in variable["targets"]:
+                    if target["data_path"] == '["throbber"]':
+                        target["id"] = props_holder
+                    else:
+                        target["id"] = drone
+            driver_setup(
+                driver_add(drone, driver["data_path"], driver["array_index"]),
+                driver)
+        # create the material drivers
         for driver in uav_data.mat_solid_drivers:
             driver_setup(
                 driver_add(mat, driver["data_path"], driver["array_index"]),
@@ -176,6 +201,12 @@ def get_drone_stuff(drone, scene, props_holder):
 
 def drive_drone_solids(scene):
     props_holder = get_object(scene, "uav_props", "DRONES", 1)
+    # get the keyframes on the throbber
+    props_holder["throbber"] = 0.0
+    props_holder.animation_data_create()
+    props_holder.animation_data.action = bpy.data.actions.new(name="throbber")
+    copy_fcurves(uav_data.prop_fcurves, props_holder.animation_data.action)
+
     drones = (
         ob for ob in scene.objects if 'channel' in ob.keys()
         and ob.active_material and 'DRONE' in ob.active_material.keys())
