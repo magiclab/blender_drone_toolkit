@@ -1,7 +1,7 @@
 bl_info = {
     "name": "MagicLab UAV IO",
     "author": "Bassam Kurdali",
-    "version": (0, 9),
+    "version": (1, 0),
     "blender": (2, 78, 0),
     "location": "File->Import-Export",
     "description": "Export/Export Object Animations for UAV Control",
@@ -15,10 +15,12 @@ if "bpy" in locals():
     importlib.reload(uav_export)
     importlib.reload(uav_import)
     importlib.reload(update_mats)
+    importlib.reload(volume_import)
 else:
     from . import uav_export
     from . import uav_import
     from . import update_mats
+    from . import volume_import
 
 import bpy
 from bpy.props import StringProperty, FloatProperty
@@ -101,6 +103,12 @@ class MagicLabIO(bpy.types.Panel):
             uav_export.ExportCSVLocations.bl_idname,
             text="Export Waypoints",
             icon='FILE')
+        row = layout.row()
+        row = layout.row()
+        row.operator(
+            volume_import.ImportCaptureVolume.bl_idname,
+            text="Import Capture Volume",
+            icon='FILE')
 
 class MagicLabView(bpy.types.Panel):
     bl_label = 'Magic Lab View'
@@ -134,6 +142,7 @@ def register():
     uav_import.register()
     uav_export.register()
     update_mats.register()
+    volume_import.register()
     bpy.utils.register_class(ConstantifyGlowKeyFrames)
     bpy.utils.register_class(MagicLabAnimation)
     bpy.utils.register_class(MagicLabIO)
@@ -145,6 +154,7 @@ def unregister():
     bpy.utils.unregister_class(MagicLabAnimation)
     bpy.utils.unregister_class(MagicLabIO)
     bpy.utils.unregister_class(ConstantifyGlowKeyFrames)
+    volume_import.unregister()
     uav_import.unregister()
     uav_export.unregister()
     update_mats.unregister()
